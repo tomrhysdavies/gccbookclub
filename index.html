@@ -11,6 +11,7 @@
             --accent-color: #2e5a44; 
             --card-bg: #ffffff;
             --border-color: #e6e4de;
+            --error-color: #b03a2e;
         }
 
         body {
@@ -139,6 +140,39 @@
             font-weight: 600;
             width: 100%;
         }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Status Alert Boxes */
+        .status-message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: none; /* Managed by Formspree JS library */
+        }
+        
+        div[data-fs-success] {
+            background-color: #e2f0d9;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+        }
+
+        div[data-fs-error] {
+            background-color: #fadbd8;
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+
+        .field-error {
+            color: var(--error-color);
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -171,20 +205,27 @@
         <section>
             <h3>Suggest a Book or Theme</h3>
             <p>Have an idea for next month? Drop the details below and it will be emailed straight to the pool.</p>
-            <form action="https://formspree.io/f/YOUR_FORMSPREE_ID" method="POST">
+            
+            <div class="status-message" data-fs-success>🎉 Brilliant suggestion! It's been submitted to the group voting list.</div>
+            <div class="status-message" data-fs-error>Oops! Something went wrong. Please check your fields and try again.</div>
+
+            <form id="book-suggestion-form">
                 <div class="form-group">
                     <label for="name">Your Name</label>
-                    <input type="text" id="name" name="name" required placeholder="Who is suggesting this?">
+                    <input type="text" id="name" name="name" required placeholder="Who is suggesting this?" data-fs-field>
+                    <span class="field-error" data-fs-error="name"></span>
                 </div>
                 <div class="form-group">
                     <label for="book">Book Title & Author</label>
-                    <input type="text" id="book" name="book" required placeholder="e.g. Project Hail Mary by Andy Weir">
+                    <input type="text" id="book" name="book" required placeholder="e.g. Project Hail Mary by Andy Weir" data-fs-field>
+                    <span class="field-error" data-fs-error="book"></span>
                 </div>
                 <div class="form-group">
                     <label for="reason">Why should we read it?</label>
-                    <textarea id="reason" name="reason" rows="3" placeholder="Give us your quick pitch..."></textarea>
+                    <textarea id="reason" name="reason" rows="3" placeholder="Give us your quick pitch..." data-fs-field></textarea>
+                    <span class="field-error" data-fs-error="reason"></span>
                 </div>
-                <button type="submit">Submit Suggestion</button>
+                <button type="submit" data-fs-submit-btn>Submit Suggestion</button>
             </form>
         </section>
     </div>
@@ -193,67 +234,52 @@
         // ==========================================
         //  ⚙️ BOOK CLUB CONFIGURATION SECTION
         // ==========================================
-        
-        // 1. Put the ISBN-13 or ISBN-10 of this month's book here (No dashes)
-        const CURRENT_BOOK_ISBN = "9781472258229"; // This is currently set to 'The Midnight Library'
-        
-        // 2. Who chose the book this month?
+        const CURRENT_BOOK_ISBN = "9781472258229"; 
         const BOOK_PICKER = "Sarah";
 
         // ==========================================
-        //  🚀 API FETCH ENGINE (Don't touch below)
+        //  🚀 API FETCH ENGINE
         // ==========================================
         document.getElementById("custom-picker").innerText = BOOK_PICKER;
-        
-        // Set the cover image instantly using Open Library's fast image CDN
         document.getElementById("cover-img").src = `https://covers.openlibrary.org/b/isbn/${CURRENT_BOOK_ISBN}-L.jpg`;
 
-        // Fetch the metadata (Title, Author, Pages, Description)
         fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${CURRENT_BOOK_ISBN}&jscmd=details&format=json`)
             .then(response => response.json())
             .then(data => {
                 const bookKey = `ISBN:${CURRENT_BOOK_ISBN}`;
-                
                 if (data && data[bookKey]) {
                     const bookData = data[bookKey];
                     const details = bookData.details;
-
-                    // Update Title
                     document.getElementById("book-title").innerText = details.title || "Unknown Title";
-                    
-                    // Update Author
                     if (details.authors && details.authors.length > 0) {
                         document.getElementById("book-author").innerText = `By ${details.authors[0].name}`;
-                    } else {
-                        document.getElementById("book-author").innerText = "";
                     }
-
-                    // Update Page Count
                     if (details.number_of_pages) {
                         document.getElementById("tag-pages").innerText = `Pages: ${details.number_of_pages}`;
                     } else {
                         document.getElementById("tag-pages").style.display = "none";
                     }
-
-                    // Update Description / Subtitle
                     if (details.description) {
-                        // Some records have descriptions as objects, some as pure strings
                         const desc = typeof details.description === 'object' ? details.description.value : details.description;
                         document.getElementById("book-description").innerText = desc;
                     } else if (details.subtitle) {
                         document.getElementById("book-description").innerText = details.subtitle;
                     } else {
-                        document.getElementById("book-description").innerText = "No description available in the open repository for this specific edition, but your group host will fill you in!";
+                        document.getElementById("book-description").innerText = "No description available in the open repository, but your group host will fill you in!";
                     }
-                } else {
-                    document.getElementById("book-title").innerText = "Book Not Found";
-                    document.getElementById("book-description").innerText = "Double check that the ISBN configuration number is correct in the script tags.";
                 }
             })
             .catch(error => {
                 console.error("Error fetching book data:", error);
-                document.getElementById("book-title").innerText = "Error Loading Book";
             });
+
+        // ==========================================
+        //  📨 FORMSPREE AJAX INITIALIZATION
+        // ==========================================
+        window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
+        formspree('initForm', { formElement: '#book-suggestion-form', formId: 'xpqngwln' });
     </script>
+    
+    <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
 </body>
 </html>
