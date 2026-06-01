@@ -401,6 +401,107 @@
         // ==========================================
         window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
         formspree('initForm', { formElement: '#book-suggestion-form', formId: 'xpqngwln' });
+
+        // ==========================================
+//  🗄️ SUPABASE CONFIGURATION
+// ==========================================
+const SUPABASE_URL = "https://supabase.com/dashboard/project/sucxgonasdoqqymeszpl";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Y3hnb25hc2RvcXF5bWVzenBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM0MjQsImV4cCI6MjA5NTg3OTQyNH0.j_zBJIfLw302hOevrCDH929ToXZFlB-7BWzRlIh9Hdo";
+
+// Initialize the Supabase client
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Cache elements
+const suggestionForm = document.getElementById('book-suggestion-form');
+const carouselContainer = document.getElementById('carousel-container'); // Make sure this matches your HTML ID
+
+// ==========================================
+//  🔄 SYSTEM WORKFLOWS
+// ==========================================
+
+// 1. Fetch and Display Suggestions from DB
+async function loadSuggestions() {
+    const { data: suggestions, error } = await supabaseClient
+        .from('suggestions')
+        .select('*')
+        .order('votes', { ascending: false }); // Show highest voted first
+
+    if (error) {
+        console.error('Error fetching suggestions:', error);
+        return;
+    }
+
+    renderCarousel(suggestions);
+}
+
+// 2. Render Data Array into HTML Cards
+function renderCarousel(books) {
+    if (!books || books.length === 0) {
+        carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
+        return;
+    }
+
+    carouselContainer.innerHTML = books.map(book => `
+        <div class="book-card" style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: center; width: 150px; flex-shrink: 0;">
+            <img src="${book.cover_url || 'https://covers.openlibrary.org/b/id/13554162-L.jpg'}" alt="${book.title}" style="width: 100%; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+            <h4 style="font-family: 'Georgia', serif; font-size: 1rem; margin: 10px 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${book.title}</h4>
+            <p style="font-size: 0.85rem; color: #666; margin: 0 0 10px 0;">${book.author}</p>
+            <button onclick="castVote(${book.id}, ${book.votes})" style="background: var(--accent-color); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; width: 100%;">
+                👍 ${book.votes}
+            </button>
+        </div>
+    `).join('');
+}
+
+// 3. Handle Upvoting
+async function castVote(id, currentVotes) {
+    const { error } = await supabaseClient
+        .from('suggestions')
+        .update({ votes: currentVotes + 1 })
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error voting:', error);
+    } else {
+        // Optimistically reload local view
+        loadSuggestions();
+    }
+}
+
+// ==========================================
+//  📥 INTERCEPT FORM SUBMISSION
+// ==========================================
+suggestionForm.addEventListener('submit', async (e) => {
+    // If you are using Formspree AJAX tool, let it run, but grab values for Supabase too
+    const nameInput = document.getElementById('name').value;
+    const bookInput = document.getElementById('book').value;
+    const reasonInput = document.getElementById('reason').value;
+
+    // Optional: Extract an ISBN from the book field if your users type one, 
+    // or run a quick text search against Open Library to get a cover.
+    // For now, we will save the text entries directly.
+    const newSuggestion = {
+        suggested_by: nameInput,
+        title: bookInput.split(' by ')[0] || bookInput,
+        author: bookInput.split(' by ')[1] || 'Unknown Author',
+        reason: reasonInput,
+        votes: 0,
+        cover_url: '' // Can be updated dynamically or left to use default fallback
+    };
+
+    const { error } = await supabaseClient
+        .from('suggestions')
+        .insert([newSuggestion]);
+
+    if (error) {
+        console.error('Error saving suggestion:', error);
+    } else {
+        loadSuggestions(); // Refresh carousel view immediately
+    }
+});
+
+// Kick off initial load when script runs
+loadSuggestions();
     </script>
     
     <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
