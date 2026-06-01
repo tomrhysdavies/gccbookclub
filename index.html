@@ -228,6 +228,23 @@
                 <button type="submit" data-fs-submit-btn>Submit Suggestion</button>
             </form>
         </section>
+        
+        <!-- Suggestions Carousel Section -->
+<section>
+    <h3>Upcoming Nominees</h3>
+    <p>Browse suggestions for next month and cast your votes!</p>
+    
+    <div class="carousel-container">
+        <button class="nav-btn prev-btn" onclick="scrollCarousel(-1)">◀</button>
+        <div id="carousel-track" class="carousel-track">
+            <!-- Dynamic book cards will be injected here -->
+        </div>
+        <button class="nav-btn next-btn" onclick="scrollCarousel(1)">▶</button>
+    </div>
+</section>
+
+<!-- Include the Supabase JS Client library via CDN (Put this right before your main script tag) -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     </div>
 
     <script>
