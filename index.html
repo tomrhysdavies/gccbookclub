@@ -336,16 +336,19 @@
         </section>
         
         <!-- Suggestions Carousel Section -->
-<section>
-    <h3>Upcoming Nominees</h3>
+<section style="position: relative; padding: 20px 0;">
+    <h3>Nominated books</h3>
     <p>Browse suggestions for next month and cast your votes!</p>
-    
-    <div class="carousel-container">
-        <button class="nav-btn prev-btn" onclick="scrollCarousel(-1)">◀</button>
-        <div id="carousel-track" class="carousel-track">
-            <!-- Dynamic book cards will be injected here -->
-        </div>
-        <button class="nav-btn next-btn" onclick="scrollCarousel(1)">▶</button>
+
+    <div style="display: flex; align-items: center; gap: 15px; position: relative;">
+        
+        <button onclick="scrollCarousel(-1)" style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0;">◀</button>
+        
+        <div id="carousel-container" style="display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 10px 5px; flex-grow: 1; min-height: 220px; scrollbar-width: none; /* Hides default scrollbar on Firefox */">
+            </div>
+
+        <button onclick="scrollCarousel(1)" style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0;">▶</button>
+        
     </div>
 </section>
 
