@@ -174,111 +174,112 @@
             display: block;
         }
 
-        /* Carousel UI Styling */
-.carousel-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin-top: 20px;
-}
+        /* Carousel UI Layout */
+        .carousel-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
 
-.carousel-track {
-    display: flex;
-    gap: 20px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    padding: 15px 5px;
-    width: 100%;
-}
+        .carousel-track {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 15px 5px;
+            flex-grow: 1;
+            min-height: 220px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
 
-/* Hide scrollbar for clean aesthetic */
-.carousel-track::-webkit-scrollbar {
-    display: none;
-}
-.carousel-track {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
+        .carousel-track::-webkit-scrollbar {
+            display: none;
+        }
 
-.nav-btn {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    z-index: 10;
-    position: absolute;
-}
-.prev-btn { left: -20px; }
-.next-btn { right: -20px; }
+        .carousel-nav-btn {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
 
-.book-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    min-width: 160px;
-    max-width: 160px;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: transform 0.2s;
-}
+        /* Reusable Dynamic Book Cards */
+        .book-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            width: 150px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
 
-.book-card:hover {
-    transform: translateY(-5px);
-}
+        .book-card:hover {
+            transform: translateY(-5px);
+        }
 
-.book-card img {
-    width: 100%;
-    height: 220px;
-    object-fit: cover;
-    border-radius: 4px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    margin-bottom: 10px;
-}
+        .book-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
 
-.card-title {
-    font-size: 0.95rem;
-    font-weight: 700;
-    margin: 5px 0 2px 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+        .book-card h4 {
+            font-family: 'Georgia', serif;
+            font-size: 1rem;
+            margin: 10px 0 2px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-.card-author {
-    font-size: 0.8rem;
-    color: #666;
-    margin-bottom: 10px;
-}
+        .book-card .card-author {
+            font-size: 0.85rem;
+            color: #666;
+            margin: 0 0 2px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-.vote-btn {
-    background-color: #f0f0eb;
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 6px 12px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-    transition: background-color 0.2s;
-}
+        .book-card .card-suggester {
+            font-size: 0.75rem;
+            color: #999;
+            margin: 0 0 10px 0;
+        }
 
-.vote-btn:hover {
-    background-color: #e2f0d9;
-    border-color: var(--accent-color);
-}
+        .book-card .vote-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        .book-card .vote-btn:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -335,25 +336,18 @@
             </form>
         </section>
         
-        <!-- Suggestions Carousel Section -->
-<section style="position: relative; padding: 20px 0;">
-    <h3>Nominated books</h3>
-    <p>Browse suggestions for next month and cast your votes!</p>
+        <section style="position: relative; padding: 20px 0;">
+            <h3>Nominated Books</h3>
+            <p>Browse suggestions for next month and cast your votes!</p>
 
-    <div style="display: flex; align-items: center; gap: 15px; position: relative;">
-        
-        <button onclick="scrollCarousel(-1)" style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0;">◀</button>
-        
-        <div id="carousel-container" style="display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 10px 5px; flex-grow: 1; min-height: 220px; scrollbar-width: none; /* Hides default scrollbar on Firefox */">
+            <div class="carousel-wrapper">
+                <button class="carousel-nav-btn" onclick="scrollCarousel(-1)">◀</button>
+                <div id="carousel-container" class="carousel-track"></div>
+                <button class="carousel-nav-btn" onclick="scrollCarousel(1)">▶</button>
             </div>
+        </section>
 
-        <button onclick="scrollCarousel(1)" style="background: white; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0;">▶</button>
-        
-    </div>
-</section>
-
-<!-- Include the Supabase JS Client library via CDN (Put this right before your main script tag) -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+        <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     </div>
 
     <script>
@@ -408,13 +402,11 @@
         // ==========================================
         //  🗄️ SUPABASE CONFIGURATION
         // ==========================================
-        const SUPABASE_URL = "https://supabase.com/dashboard/project/sucxgonasdoqqymeszpl";
+        const SUPABASE_URL = "https://sucxgonasdoqqymeszpl.supabase.co"; // Corrected API URL endpoint layout
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Y3hnb25hc2RvcXF5bWVzenBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM0MjQsImV4cCI6MjA5NTg3OTQyNH0.j_zBJIfLw302hOevrCDH929ToXZFlB-7BWzRlIh9Hdo";
 
-        // Initialize the Supabase client
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // Cache DOM elements
         const suggestionForm = document.getElementById('book-suggestion-form');
         const carouselContainer = document.getElementById('carousel-container');
 
@@ -422,102 +414,102 @@
         //  🔄 SYSTEM WORKFLOWS
         // ==========================================
         
-        // 1. Fetch and Display Suggestions from DB
         async function loadSuggestions() {
             const { data: suggestions, error } = await supabaseClient
                 .from('suggestions')
                 .select('*')
-                .order('votes', { ascending: false }); // Sort by highest vote count first
+                .order('votes', { ascending: false });
 
             if (error) {
                 console.error('Error fetching suggestions:', error);
                 return;
-    }
+            }
+            renderCarousel(suggestions);
+        }
 
-    renderCarousel(suggestions);
-}
+        function renderCarousel(books) {
+            if (!books || books.length === 0) {
+                carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
+                return;
+            }
 
-// 2. Render Data Array into HTML Cards
-function renderCarousel(books) {
-    if (!books || books.length === 0) {
-        carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
-        return;
-    }
+            carouselContainer.innerHTML = books.map(book => {
+                const cleanIsbn = book.isbn ? book.isbn.replace(/[- ]/g, "") : "";
+                const coverSrc = cleanIsbn 
+                    ? `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg` 
+                    : `https://covers.openlibrary.org/b/id/13554162-L.jpg`;
 
-    carouselContainer.innerHTML = books.map(book => {
-        // Clean up the input ISBN for the image URL lookup fallback
-        const cleanIsbn = book.isbn ? book.isbn.replace(/[- ]/g, "") : "";
-        const coverSrc = cleanIsbn 
-            ? `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg` 
-            : `https://covers.openlibrary.org/b/id/13554162-L.jpg`; // Standard blank cover fallback
+                return `
+                    <div class="book-card">
+                        <img src="${coverSrc}" alt="${book.title}" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
+                        <h4 title="${book.title}">${book.title}</h4>
+                        <p class="card-author">By ${book.author}</p>
+                        <p class="card-suggester">Nom: ${book.suggester}</p>
+                        <button class="vote-btn" onclick="castVote(${book.id}, ${book.votes})">
+                            👍 ${book.votes || 0}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
 
-        return `
-            <div class="book-card" style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: center; width: 150px; flex-shrink: 0;">
-                <img src="${coverSrc}" alt="${book.title}" style="width: 100%; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
-                <h4 style="font-family: 'Georgia', serif; font-size: 1rem; margin: 10px 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${book.title}">${book.title}</h4>
-                <p style="font-size: 0.85rem; color: #666; margin: 0 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">By ${book.author}</p>
-                <p style="font-size: 0.75rem; color: #999; margin: 0 0 10px 0;">Nom: ${book.suggester}</p>
-                <button onclick="castVote(${book.id}, ${book.votes})" style="background: var(--accent-color); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; width: 100%;">
-                    👍 ${book.votes || 0}
-                </button>
-            </div>
-        `;
-    }).join('');
-}
+        async function castVote(id, currentVotes) {
+            const { error } = await supabaseClient
+                .from('suggestions')
+                .update({ votes: (currentVotes || 0) + 1 })
+                .eq('id', id);
 
-// 3. Handle Upvoting
-async function castVote(id, currentVotes) {
-    const { error } = await supabaseClient
-        .from('suggestions')
-        .update({ votes: (currentVotes || 0) + 1 })
-        .eq('id', id);
+            if (error) {
+                console.error('Error voting:', error);
+            } else {
+                loadSuggestions();
+            }
+        }
 
-    if (error) {
-        console.error('Error voting:', error);
-    } else {
-        // Reload fresh snapshot from database
+        // Native smooth scroll handler for the carousel buttons
+        window.scrollCarousel = function(direction) {
+            const scrollAmount = 200; 
+            carouselContainer.scrollBy({
+                left: direction * scrollAmount,
+                behavior: 'smooth'
+            });
+        };
+
+        // ==========================================
+        //  📥 INTERCEPT FORM SUBMISSION
+        // ==========================================
+        suggestionForm.addEventListener('submit', async (e) => {
+            // Prevent native layout refresh so AJAX data actions complete successfully
+            e.preventDefault();
+
+            const nameInput = document.getElementById('name').value;
+            const bookInput = document.getElementById('book').value;
+            
+            const parsedTitle = bookInput.split(' by ')[0] || bookInput;
+            const parsedAuthor = bookInput.split(' by ')[1] || 'Unknown Author';
+
+            const newSuggestion = {
+                suggester: nameInput,
+                title: parsedTitle,
+                author: parsedAuthor,
+                isbn: "", // Cleaned up lookup reference since input layout is plain text string
+                votes: 0
+            };
+
+            const { error } = await supabaseClient
+                .from('suggestions')
+                .insert([newSuggestion]);
+
+            if (error) {
+                console.error('Error saving suggestion to Supabase:', error);
+            } else {
+                loadSuggestions(); // Soft dynamic container update
+                suggestionForm.reset(); // Safely clear form values
+            }
+        });
+
+        // Initialize display lifecycle
         loadSuggestions();
-    }
-}
-
-// ==========================================
-//  📥 INTERCEPT FORM SUBMISSION
-// ==========================================
-suggestionForm.addEventListener('submit', async (e) => {
-    const nameInput = document.getElementById('name').value;
-    const bookInput = document.getElementById('book').value;
-    
-    // Check if you have an explicit input element for ISBN in your layout,
-    // otherwise it will default to a fallback string safely.
-    const isbnElement = document.getElementById('isbn');
-    const isbnInput = isbnElement ? isbnElement.value : "";
-
-    // Parse out simple title/author chunks if your users submit via single text input string
-    const parsedTitle = bookInput.split(' by ')[0] || bookInput;
-    const parsedAuthor = bookInput.split(' by ')[1] || 'Unknown Author';
-
-    const newSuggestion = {
-        suggester: nameInput,
-        title: parsedTitle,
-        author: parsedAuthor,
-        isbn: isbnInput,
-        votes: 0
-        // 'id' and 'created_at' are handled automatically by Supabase defaults
-    };
-
-    const { error } = await supabaseClient
-        .from('suggestions')
-        .insert([newSuggestion]);
-
-    if (error) {
-        console.error('Error saving suggestion:', error);
-    } else {
-        loadSuggestions(); // Re-render carousel instantly
-    }
-});
-
-// Kick off initial database load lifecycle
-loadSuggestions();
     </script>
     
     <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
