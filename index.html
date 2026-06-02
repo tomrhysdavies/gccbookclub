@@ -498,6 +498,15 @@
         }
 
         async function castVote(id, currentVotes) {
+            // 1. Check if this specific book ID already exists in the user's browser memory
+            const hasVoted = localStorage.getItem(`voted_book_${id}`);
+
+            if (hasVoted) {
+                alert("🔒 You have already voted for this book nomination! Each member gets 1 vote per book.");
+                return; // Stop execution immediately
+            }
+
+            // 2. Proceed with updating the database if they haven't voted yet
             const { error } = await supabaseClient
                 .from('suggestions')
                 .update({ votes: (currentVotes || 0) + 1 })
@@ -505,7 +514,12 @@
 
             if (error) {
                 console.error('Error voting:', error);
+                alert("Something went wrong saving your vote. Try again!");
             } else {
+                // 3. Save the "voted" flag to the browser memory so they are locked out next time
+                localStorage.setItem(`voted_book_${id}`, "true");
+                
+                // Refresh the carousel layout to display the updated number
                 loadSuggestions();
             }
         }
