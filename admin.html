@@ -1,0 +1,39 @@
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+    // Initialize Supabase
+    const SUPABASE_URL = "https://sucxgonasdoqqymeszpl.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Y3hnb25hc2RvcXF5bWVzenBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM0MjQsImV4cCI6MjA5NTg3OTQyNH0.j_zBJIfLw302hOevrCDH929ToXZFlB-7BWzRlIh9Hdo";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ... (Keep your existing checkPassword and lookupBook functions here) ...
+
+    async function saveCurrentBook() {
+        if (!currentFetchedBook) return;
+
+        try {
+            // Prepare the payload, forcing ID to 1 so it overwrites the previous month's book
+            const bookData = {
+                id: 1, 
+                title: currentFetchedBook.title,
+                author: currentFetchedBook.author,
+                description: currentFetchedBook.description,
+                pages: currentFetchedBook.pages,
+                cover_url: currentFetchedBook.cover_url
+            };
+
+            // Upsert handles both inserting for the first time and updating existing rows
+            const { data, error } = await supabase
+                .from('current_book')
+                .upsert(bookData);
+
+            if (error) throw error;
+
+            alert(`Successfully set "${currentFetchedBook.title}" as the current book!`);
+            
+        } catch (err) {
+            console.error("Supabase Save Error:", err);
+            alert("Failed to save changes to Supabase. Check console.");
+        }
+    }
+</script>
