@@ -456,10 +456,10 @@
         let buttonText = `👍 ${book.votes || 0}`;
         let buttonStyle = "";
 
-        if (alreadyVoted) {
+       if (alreadyVoted) {
             buttonText = `✅ Voted (${book.votes || 0})`;
-            // Fix: We use background, color, pointer-events, and inherit the exact body font families
-            buttonStyle = `style="background-color: #cbd5e0; color: #555555; cursor: not-allowed; pointer-events: none; font-family: inherit; font-weight: 600;"`;
+            // Added !important to the background, color, and font properties
+            buttonStyle = `style="background-color: #cbd5e0 !important; color: #555555 !important; cursor: not-allowed !important; pointer-events: none; font-family: inherit !important; font-weight: 600 !important;"`;
         }
 
         return `
