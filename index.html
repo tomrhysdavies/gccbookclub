@@ -442,26 +442,45 @@
             renderCarousel(suggestions);
         }
 
-        function renderCarousel(books) {
-            if (!books || books.length === 0) {
-                carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
-                return;
-            }
+       function renderCarousel(books) {
+    if (!books || books.length === 0) {
+        carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
+        return;
+    }
 
-            carouselContainer.innerHTML = books.map(book => {
-                return `
-                    <div class="book-card">
-                        <img id="carousel-img-${book.id}" src="https://covers.openlibrary.org/b/id/13554162-L.jpg" alt="${book.title}" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
-                        <h4 title="${book.title}">${book.title}</h4>
-                        <p class="card-author">By ${book.author}</p>
-                        <p class="card-suggester">Nom: ${book.suggester}</p>
-                        <button class="vote-btn" onclick="castVote(${book.id}, ${book.votes})">
-                            👍 ${book.votes || 0}
-                        </button>
-                    </div>
-                `;
-            }).join('');
+    carouselContainer.innerHTML = books.map(book => {
+        // 1. Check the browser memory to see if this specific book has been voted on
+        const alreadyVoted = localStorage.getItem(`voted_book_${book.id}`);
+        
+        // 2. Set up variables for the button text and background style based on the check
+        let buttonText = `👍 ${book.votes || 0}`;
+        let buttonStyle = "";
 
+        if (alreadyVoted) {
+            buttonText = `✅ Voted (${book.votes || 0})`;
+            // This turns the button gray, changes the text color, and stops the cursor from turning into a pointer link
+            buttonStyle = `style="background-color: #cbd5e0; color: #718096; cursor: not-allowed;"`;
+        }
+
+        // 3. Return the HTML template, using our dynamic buttonStyle and buttonText variables
+        return `
+            <div class="book-card">
+                <img id="carousel-img-${book.id}" src="https://covers.openlibrary.org/b/id/13554162-L.jpg" alt="${book.title}" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
+                <h4 title="${book.title}">${book.title}</h4>
+                <p class="card-author">By ${book.author}</p>
+                <p class="card-suggester">Nom: ${book.suggester}</p>
+                <button class="vote-btn" ${buttonStyle} onclick="castVote(${book.id}, ${book.votes})">
+                    ${buttonText}
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    // Background background API cover image lookups
+    books.forEach(book => {
+        fetchBookCoverLive(book);
+    });
+}
             books.forEach(book => {
                 fetchBookCoverLive(book);
             });
