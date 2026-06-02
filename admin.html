@@ -232,7 +232,7 @@
         // ==========================================
         //  🔒 ACCESS CREDENTIAL GATEWAY
         // ==========================================
-        const ADMIN_PASSWORD = "milo123"; // Change this to your main admin page password!
+        const ADMIN_PASSWORD = "YOUR_ADMIN_PASSWORD_HERE"; // Change this to your main admin page password!
         let currentFetchedBook = null;
 
         function checkPassword() {
@@ -243,8 +243,11 @@
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('admin-panel').classList.remove('hidden');
                 
-                // Triggers the background loading sequence for our carousel management list!
-                loadAdminSuggestionsPool();
+                try {
+                    loadAdminSuggestionsPool();
+                } catch(e) {
+                    console.error("Delayed load catch:", e);
+                }
             } else {
                 authError.classList.remove('hidden');
             }
@@ -260,11 +263,10 @@
         const SUPABASE_URL = "https://sucxgonasdoqqymeszpl.supabase.co"; 
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Y3hnb25hc2RvcXF5bWVzenBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM0MjQsImV4cCI6MjA5NTg3OTQyNH0.j_zBJIfLw302hOevrCDH929ToXZFlB-7BWzRlIh9Hdo";
         
-        // This passes your master secret key dynamically behind the scenes for RLS authentication
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             global: {
                 headers: {
-                    'x-admin-secret': 'milo123' // Change this to match your Supabase Policy Secret string!
+                    'x-admin-secret': 'secretkey' // Must match your saved Supabase RLS Policy string!
                 }
             }
         });
@@ -366,7 +368,7 @@
                 
             } catch (err) {
                 console.error("Supabase Write Violation Error:", err);
-                alert("Failed to write state array update entries to Supabase. Verify your table RLS policies configuration matches.");
+                alert("Failed to write state entries to Supabase. Verify your table RLS policies configuration matches.");
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerText = "Confirm & Update Homepage";
@@ -378,9 +380,109 @@
         // ==========================================
         async function loadAdminSuggestionsPool() {
             const listContainer = document.getElementById('admin-suggestions-list');
+            if (!listContainer) return;
             
             try {
                 const { data: suggestions, error } = await supabaseClient
                     .from('suggestions')
                     .select('*')
                     .order('votes', { ascending: false });
+
+                if (error) throw error;
+
+                if (!suggestions || suggestions.length === 0) {
+                    listContainer.innerHTML = `<p style="color: #666; font-style: italic; font-size: 14px;">The nomination pool is currently empty.</p>`;
+                    return;
+                }
+
+                listContainer.innerHTML = suggestions.map(book => {
+                    const cleanTitle = (book.title || '').replace(/'/g, "\\'");
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: #fafafa; border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; gap: 15px;">
+                            <div style="flex: 1;">
+                                <strong style="font-size: 15px; color: var(--text-color);">${book.title}</strong>
+                                <span style="font-size: 13px; color: #666; display: block;">By ${book.author} | Nominated by: <em>${book.suggester}</em> (👍 ${book.votes || 0})</span>
+                            </div>
+                            <button style="background-color: var(--error-color); width: auto; font-size: 13px; padding: 6px 12px; border-radius: 4px;" onclick="deleteNominationEntry(${book.id}, '${cleanTitle}')">
+                                Remove
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error("Error generating admin nominations list panel entries:", err);
+                listContainer.innerHTML = `<p style="color: var(--error-color); font-size: 14px;">Failed to synchronize suggestions archive entries.</p>`;
+            }
+        }
+
+        async function deleteNominationEntry(id, title) {
+            const doubleCheck = confirm(`Are you sure you want to completely delete "${title}" from the nominations list?`);
+            if (!doubleCheck) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('suggestions')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                alert(`"${title}" has been successfully removed from the database.`);
+                loadAdminSuggestionsPool();
+
+            } catch (err) {
+                console.error("Deletion Mutation Failure Error:", err);
+                alert("Failed to drop database record. Make sure you applied your 'Allow admin deletion via secret key' SQL policy in Supabase.");
+            }
+        }
+
+        // ==========================================
+        //  🚨 DANGER ZONE: CAROUSEL DB TRUNCATION
+        // ==========================================
+        async function clearCarouselData() {
+            const secretPassword = document.getElementById('reset-verify-password').value.trim();
+            const errorDiv = document.getElementById('reset-error');
+            const resetBtn = document.getElementById('reset-btn');
+
+            if (errorDiv) errorDiv.classList.add('hidden');
+
+            if (!secretPassword) {
+                if (errorDiv) {
+                    errorDiv.innerText = "You must enter the secret reset key to proceed.";
+                    errorDiv.classList.remove('hidden');
+                }
+                return;
+            }
+
+            const doubleCheck = confirm("Are you absolutely sure you want to delete ALL nominated books and reset everyone's votes to zero?");
+            if (!doubleCheck) return;
+
+            resetBtn.disabled = true;
+            resetBtn.innerText = "Wiping Database...";
+
+            try {
+                const { data, error } = await supabaseClient.rpc('reset_nominations_carousel', {
+                    provided_password: secretPassword
+                });
+
+                if (error) throw error;
+
+                alert("🎉 Success! The nomination database table has been cleared. The index.html carousel will now be empty for the new cycle.");
+                document.getElementById('reset-verify-password').value = ""; 
+                loadAdminSuggestionsPool();
+
+            } catch (err) {
+                console.error("Reset Error:", err);
+                if (errorDiv) {
+                    errorDiv.innerText = err.message || "Wipe failed. Verify your secret reset key matches the database setup.";
+                    errorDiv.classList.remove('hidden');
+                }
+            } finally {
+                resetBtn.disabled = false;
+                resetBtn.innerText = "Wipe Carousel";
+            }
+        }
+    </script>
+</body>
+</html>
