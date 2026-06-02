@@ -427,9 +427,10 @@
         const errorAlert = document.getElementById('status-error');
         const submitBtn = document.getElementById('submit-btn');
 
+       // ==========================================
+        //  🔄 SYSTEM WORKFLOWS (With Live Cover Lookup)
         // ==========================================
-        //  🔄 SYSTEM WORKFLOWS (Carousel UI render)
-        // ==========================================
+        
         async function loadSuggestions() {
             const { data: suggestions, error } = await supabaseClient
                 .from('suggestions')
@@ -449,15 +450,11 @@
                 return;
             }
 
+            // 1. Render all cards instantly with a default fallback cover
             carouselContainer.innerHTML = books.map(book => {
-                const cleanIsbn = book.isbn ? book.isbn.replace(/[- ]/g, "") : "";
-                const coverSrc = cleanIsbn 
-                    ? `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg` 
-                    : `https://covers.openlibrary.org/b/id/13554162-L.jpg`;
-
                 return `
                     <div class="book-card">
-                        <img src="${coverSrc}" alt="${book.title}" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
+                        <img id="carousel-img-${book.id}" src="https://covers.openlibrary.org/b/id/13554162-L.jpg" alt="${book.title}" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
                         <h4 title="${book.title}">${book.title}</h4>
                         <p class="card-author">By ${book.author}</p>
                         <p class="card-suggester">Nom: ${book.suggester}</p>
@@ -467,6 +464,45 @@
                     </div>
                 `;
             }).join('');
+
+            // 2. Fire off async background API calls to fetch accurate covers live
+            books.forEach(book => {
+                fetchBookCoverLive(book);
+            });
+        }
+
+        async function fetchBookCoverLive(book) {
+            // If an ISBN happens to be present, prioritize it for an instant lookup
+            if (book.isbn && book.isbn.trim() !== "") {
+                const cleanIsbn = book.isbn.replace(/[- ]/g, "");
+                document.getElementById(`carousel-img-${book.id}`).src = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`;
+                return;
+            }
+
+            // Otherwise, search OpenLibrary using the title and author strings
+            try {
+                const query = encodeURIComponent(`${book.title} ${book.author}`);
+                const response = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=1`);
+                const data = await response.json();
+
+                if (data.docs && data.docs.length > 0) {
+                    const firstMatch = data.docs[0];
+                    const imgElement = document.getElementById(`carousel-img-${book.id}`);
+                    
+                    if (!imgElement) return; // Guard clause in case carousel rerendered mid-fetch
+
+                    // If a specific cover ID exists, use it
+                    if (firstMatch.cover_i) {
+                        imgElement.src = `https://covers.openlibrary.org/b/id/${firstMatch.cover_i}-L.jpg`;
+                    } 
+                    // Fallback to checking for an ISBN in the search documentation result
+                    else if (firstMatch.isbn && firstMatch.isbn.length > 0) {
+                        imgElement.src = `https://covers.openlibrary.org/b/isbn/${firstMatch.isbn[0]}-L.jpg`;
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed live cover lookup for: ${book.title}`, error);
+            }
         }
 
         async function castVote(id, currentVotes) {
@@ -482,6 +518,7 @@
             }
         }
 
+        // Native smooth scroll handler for the carousel buttons
         window.scrollCarousel = function(direction) {
             const scrollAmount = 200; 
             carouselContainer.scrollBy({
@@ -489,7 +526,7 @@
                 behavior: 'smooth'
             });
         };
-
+        
         // ==========================================
         //  📥 MUTUAL BACKEND SUBMISSION INTERCEPT
         // ==========================================
