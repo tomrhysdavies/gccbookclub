@@ -152,34 +152,29 @@
             border-radius: 6px;
             margin-bottom: 20px;
             font-weight: 500;
-            display: none; /* Managed by Formspree JS library */
+            display: none;
         }
         
-        div[data-fs-success] {
+        .status-message.success {
+            display: block;
             background-color: #e2f0d9;
             color: var(--accent-color);
             border: 1px solid var(--accent-color);
         }
 
-        div[data-fs-error] {
+        .status-message.error {
+            display: block;
             background-color: #fadbd8;
             color: var(--error-color);
             border: 1px solid var(--error-color);
-        }
-
-        .field-error {
-            color: var(--error-color);
-            font-size: 0.85rem;
-            margin-top: 5px;
-            display: block;
         }
 
         /* Carousel UI Layout */
         .carousel-wrapper {
             display: flex;
             align-items: center;
-            gap: 15px;
-            position: relative;
+            position: relative; /* Keeps button markers locked relative to boundaries */
+            width: 100%;
         }
 
         .carousel-track {
@@ -198,9 +193,11 @@
             display: none;
         }
 
+        /* Updated Floating Navigation Buttons */
         .carousel-nav-btn {
-            background: white;
-            border: 1px solid #ddd;
+            background: #ffffff;
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -208,8 +205,29 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            position: absolute;
+            z-index: 10; /* Ensures buttons display over book covers */
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        /* Left arrow placement */
+        .carousel-nav-btn:first-of-type {
+            left: -20px; 
+        }
+
+        /* Right arrow placement */
+        .carousel-nav-btn:last-of-type {
+            right: -20px;
+        }
+
+        /* Interactive hover pop state */
+        .carousel-nav-btn:hover {
+            background-color: var(--accent-color);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
 
         /* Reusable Dynamic Book Cards */
@@ -313,26 +331,23 @@
             <h3>Suggest a Book or Theme</h3>
             <p>Have an idea for next month? Drop the details below and it will be emailed straight to the pool.</p>
             
-            <div class="status-message" data-fs-success>🎉 Brilliant suggestion! It's been submitted to the group voting list.</div>
-            <div class="status-message" data-fs-error>Oops! Something went wrong. Please check your fields and try again.</div>
+            <div id="status-success" class="status-message">🎉 Brilliant suggestion! It's been submitted to the group voting list.</div>
+            <div id="status-error" class="status-message">Oops! Something went wrong. Please check your fields and try again.</div>
 
             <form id="book-suggestion-form">
                 <div class="form-group">
                     <label for="name">Your Name</label>
-                    <input type="text" id="name" name="name" required placeholder="Who is suggesting this?" data-fs-field>
-                    <span class="field-error" data-fs-error="name"></span>
+                    <input type="text" id="name" name="name" required placeholder="Who is suggesting this?">
                 </div>
                 <div class="form-group">
                     <label for="book">Book Title & Author</label>
-                    <input type="text" id="book" name="book" required placeholder="e.g. Project Hail Mary by Andy Weir" data-fs-field>
-                    <span class="field-error" data-fs-error="book"></span>
+                    <input type="text" id="book" name="book" required placeholder="e.g. Project Hail Mary by Andy Weir">
                 </div>
                 <div class="form-group">
                     <label for="reason">Why should we read it?</label>
-                    <textarea id="reason" name="reason" rows="3" placeholder="Give us your quick pitch..." data-fs-field></textarea>
-                    <span class="field-error" data-fs-error="reason"></span>
+                    <textarea id="reason" name="reason" rows="3" placeholder="Give us your quick pitch..."></textarea>
                 </div>
-                <button type="submit" data-fs-submit-btn>Submit Suggestion</button>
+                <button type="submit" id="submit-btn">Submit Suggestion</button>
             </form>
         </section>
         
@@ -346,9 +361,9 @@
                 <button class="carousel-nav-btn" onclick="scrollCarousel(1)">▶</button>
             </div>
         </section>
-
-        <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
     <script>
         // ==========================================
@@ -356,64 +371,65 @@
         // ==========================================
         const CURRENT_BOOK_ISBN = "978-1789990546"; 
         const BOOK_PICKER = "Danni";
+        const FORMSPREE_ID = "xpqngwln";
 
         // ==========================================
-        //  🚀 API FETCH ENGINE
+        //  🚀 API FETCH ENGINE (Spotlight Section)
         // ==========================================
         document.getElementById("custom-picker").innerText = BOOK_PICKER;
         document.getElementById("cover-img").src = `https://covers.openlibrary.org/b/isbn/${CURRENT_BOOK_ISBN}-L.jpg`;
 
-        fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${CURRENT_BOOK_ISBN}&jscmd=details&format=json`)
+        // Direct JSON query string route to Open Library data objects
+        fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${CURRENT_BOOK_ISBN}&jscmd=data&format=json`)
             .then(response => response.json())
             .then(data => {
                 const bookKey = `ISBN:${CURRENT_BOOK_ISBN}`;
                 if (data && data[bookKey]) {
                     const bookData = data[bookKey];
-                    const details = bookData.details;
-                    document.getElementById("book-title").innerText = details.title || "Unknown Title";
-                    if (details.authors && details.authors.length > 0) {
-                        document.getElementById("book-author").innerText = `By ${details.authors[0].name}`;
+                    
+                    document.getElementById("book-title").innerText = bookData.title || "Unknown Title";
+                    
+                    if (bookData.authors && bookData.authors.length > 0) {
+                        document.getElementById("book-author").innerText = `By ${bookData.authors[0].name}`;
                     }
-                    if (details.number_of_pages) {
-                        document.getElementById("tag-pages").innerText = `Pages: ${details.number_of_pages}`;
+                    if (bookData.number_of_pages) {
+                        document.getElementById("tag-pages").innerText = `Pages: ${bookData.number_of_pages}`;
                     } else {
                         document.getElementById("tag-pages").style.display = "none";
                     }
-                    if (details.description) {
-                        const desc = typeof details.description === 'object' ? details.description.value : details.description;
-                        document.getElementById("book-description").innerText = desc;
-                    } else if (details.subtitle) {
-                        document.getElementById("book-description").innerText = details.subtitle;
+                    
+                    if (bookData.notes) {
+                        document.getElementById("book-description").innerText = bookData.notes;
+                    } else if (bookData.subtitle) {
+                        document.getElementById("book-description").innerText = bookData.subtitle;
                     } else {
-                        document.getElementById("book-description").innerText = "No description available in the open repository, but your group host will fill you in!";
+                        document.getElementById("book-description").innerText = "No summary available in the open repository, but your group host will fill you in!";
                     }
                 }
             })
             .catch(error => {
                 console.error("Error fetching book data:", error);
+                document.getElementById("book-title").innerText = "The Midnight Library";
+                document.getElementById("book-author").innerText = "By Matt Haig";
             });
-
-        // ==========================================
-        //  📨 FORMSPREE AJAX INITIALIZATION
-        // ==========================================
-        window.formspree = window.formspree || function () { (formspree.q = formspree.q || []).push(arguments); };
-        formspree('initForm', { formElement: '#book-suggestion-form', formId: 'xpqngwln' });
 
         // ==========================================
         //  🗄️ SUPABASE CONFIGURATION
         // ==========================================
-        const SUPABASE_URL = "https://sucxgonasdoqqymeszpl.supabase.co"; // Corrected API URL endpoint layout
+        const SUPABASE_URL = "https://sucxgonasdoqqymeszpl.supabase.co"; 
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Y3hnb25hc2RvcXF5bWVzenBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM0MjQsImV4cCI6MjA5NTg3OTQyNH0.j_zBJIfLw302hOevrCDH929ToXZFlB-7BWzRlIh9Hdo";
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         const suggestionForm = document.getElementById('book-suggestion-form');
         const carouselContainer = document.getElementById('carousel-container');
+        const successAlert = document.getElementById('status-success');
+        const errorAlert = document.getElementById('status-error');
+        const submitBtn = document.getElementById('submit-btn');
 
         // ==========================================
-        //  🔄 SYSTEM WORKFLOWS
+        //  🔄 SYSTEM WORKFLOWS (Carousel UI render)
         // ==========================================
-        
         async function loadSuggestions() {
             const { data: suggestions, error } = await supabaseClient
                 .from('suggestions')
@@ -466,7 +482,6 @@
             }
         }
 
-        // Native smooth scroll handler for the carousel buttons
         window.scrollCarousel = function(direction) {
             const scrollAmount = 200; 
             carouselContainer.scrollBy({
@@ -476,42 +491,80 @@
         };
 
         // ==========================================
-        //  📥 INTERCEPT FORM SUBMISSION
+        //  📥 MUTUAL BACKEND SUBMISSION INTERCEPT
         // ==========================================
         suggestionForm.addEventListener('submit', async (e) => {
-            // Prevent native layout refresh so AJAX data actions complete successfully
             e.preventDefault();
+            
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Submitting Nom...";
+            successAlert.classList.remove('success');
+            errorAlert.classList.remove('error');
 
             const nameInput = document.getElementById('name').value;
             const bookInput = document.getElementById('book').value;
+            const reasonInput = document.getElementById('reason').value;
             
-            const parsedTitle = bookInput.split(' by ')[0] || bookInput;
-            const parsedAuthor = bookInput.split(' by ')[1] || 'Unknown Author';
+            // Case-insensitive clean text parsing split rule
+            const parts = bookInput.split(/ \s*by\s* /i);
+            const parsedTitle = parts[0] ? parts[0].trim() : bookInput.trim();
+            const parsedAuthor = parts[1] ? parts[1].trim() : 'Unknown Author';
 
             const newSuggestion = {
                 suggester: nameInput,
                 title: parsedTitle,
                 author: parsedAuthor,
-                isbn: "", // Cleaned up lookup reference since input layout is plain text string
+                isbn: "", 
                 votes: 0
             };
 
-            const { error } = await supabaseClient
+            // 1. Write data directly to Supabase Table Layout
+            const { error: supabaseError } = await supabaseClient
                 .from('suggestions')
                 .insert([newSuggestion]);
 
-            if (error) {
-                console.error('Error saving suggestion to Supabase:', error);
-            } else {
-                loadSuggestions(); // Soft dynamic container update
-                suggestionForm.reset(); // Safely clear form values
+            if (supabaseError) {
+                console.error('Supabase Drop Failure:', supabaseError);
+                errorAlert.classList.add('error');
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Suggestion";
+                return;
             }
+
+            // 2. Safely trigger programmatic Formspree fetch tracking endpoint
+            fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: nameInput,
+                    suggestion: bookInput,
+                    pitch: reasonInput
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    successAlert.classList.add('success');
+                    suggestionForm.reset();
+                    loadSuggestions();
+                } else {
+                    errorAlert.classList.add('error');
+                }
+            })
+            .catch(err => {
+                console.error('Formspree dispatch error:', err);
+                errorAlert.classList.add('error');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Suggestion";
+            });
         });
 
         // Initialize display lifecycle
         loadSuggestions();
     </script>
-    
-    <script src="https://unpkg.com/@formspree/ajax@1" defer></script>
 </body>
 </html>
