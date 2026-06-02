@@ -323,11 +323,11 @@
                 <p id="book-author"><em>Loading author...</em></p>
                 
                 <div class="tags">
-                    <span class="tag">Selected by: <strong id="custom-picker">Sarah</strong></span>
+                    <span class="tag">Selected by: <strong id="custom-picker">--</strong></span>
                     <span id="tag-pages" class="tag">Pages: --</span>
                 </div>
                 
-                <p id="book-description">Fetching book summary from the archive...</p>
+                <p id="book-description">Fetching book summary from the database...</p>
             </div>
         </div>
 
@@ -371,53 +371,6 @@
 
     <script>
         // ==========================================
-        //  ⚙️ BOOK CLUB CONFIGURATION SECTION
-        // ==========================================
-        const CURRENT_BOOK_ISBN = "978-1789990546"; 
-        const BOOK_PICKER = "Danni";
-        const FORMSPREE_ID = "xpqngwln";
-
-        // ==========================================
-        //  🚀 API FETCH ENGINE (Spotlight Section)
-        // ==========================================
-        document.getElementById("custom-picker").innerText = BOOK_PICKER;
-        document.getElementById("cover-img").src = `https://covers.openlibrary.org/b/isbn/${CURRENT_BOOK_ISBN}-L.jpg`;
-
-        // Direct JSON query string route to Open Library data objects
-        fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${CURRENT_BOOK_ISBN}&jscmd=data&format=json`)
-            .then(response => response.json())
-            .then(data => {
-                const bookKey = `ISBN:${CURRENT_BOOK_ISBN}`;
-                if (data && data[bookKey]) {
-                    const bookData = data[bookKey];
-                    
-                    document.getElementById("book-title").innerText = bookData.title || "Unknown Title";
-                    
-                    if (bookData.authors && bookData.authors.length > 0) {
-                        document.getElementById("book-author").innerText = `By ${bookData.authors[0].name}`;
-                    }
-                    if (bookData.number_of_pages) {
-                        document.getElementById("tag-pages").innerText = `Pages: ${bookData.number_of_pages}`;
-                    } else {
-                        document.getElementById("tag-pages").style.display = "none";
-                    }
-                    
-                    if (bookData.notes) {
-                        document.getElementById("book-description").innerText = bookData.notes;
-                    } else if (bookData.subtitle) {
-                        document.getElementById("book-description").innerText = bookData.subtitle;
-                    } else {
-                        document.getElementById("book-description").innerText = "No summary available in the open repository, but your group host will fill you in!";
-                    }
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching book data:", error);
-                document.getElementById("book-title").innerText = "The Midnight Library";
-                document.getElementById("book-author").innerText = "By Matt Haig";
-            });
-
-        // ==========================================
         //  🗄️ SUPABASE CONFIGURATION
         // ==========================================
         const SUPABASE_URL = "https://sucxgonasdoqqymeszpl.supabase.co"; 
@@ -431,10 +384,51 @@
         const errorAlert = document.getElementById('status-error');
         const submitBtn = document.getElementById('submit-btn');
 
-       // ==========================================
-        //  🔄 SYSTEM WORKFLOWS (With Live Cover Lookup)
+        const FORMSPREE_ID = "xpqngwln";
+
         // ==========================================
-        
+        //  🚀 LIVE BACKEND FETCH (Current Spotlight Book)
+        // ==========================================
+        async function loadCurrentBook() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('current_book')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    document.getElementById("book-title").innerText = data.title || "Untitled Book";
+                    document.getElementById("book-author").innerText = data.author ? `By ${data.author}` : "Unknown Author";
+                    document.getElementById("cover-img").src = data.cover_url || "https://via.placeholder.com/200x300?text=No+Cover";
+                    document.getElementById("cover-img").alt = `${data.title} Cover`;
+                    document.getElementById("custom-picker").innerText = data.picker || "Host Selection";
+                    
+                    if (data.pages) {
+                        document.getElementById("tag-pages").innerText = `Pages: ${data.pages}`;
+                        document.getElementById("tag-pages").style.display = "inline-block";
+                    } else {
+                        document.getElementById("tag-pages").style.display = "none";
+                    }
+
+                    document.getElementById("book-description").innerText = data.description || "No summary available for this selection.";
+                }
+            } catch (error) {
+                console.error("Error fetching spotlight book from Supabase:", error);
+                // Hardcoded fallback logic in case table is empty or connection breaks
+                document.getElementById("book-title").innerText = "The Midnight Library";
+                document.getElementById("book-author").innerText = "By Matt Haig";
+                document.getElementById("cover-img").src = "https://covers.openlibrary.org/b/isbn/978-1789990546-L.jpg";
+                document.getElementById("custom-picker").innerText = "Danni";
+                document.getElementById("tag-pages").innerText = "Pages: 304";
+            }
+        }
+
+        // ==========================================
+        //  🔄 CAROUSEL WORKFLOWS
+        // ==========================================
         async function loadSuggestions() {
             const { data: suggestions, error } = await supabaseClient
                 .from('suggestions')
@@ -454,7 +448,6 @@
                 return;
             }
 
-            // 1. Render all cards instantly with a default fallback cover
             carouselContainer.innerHTML = books.map(book => {
                 return `
                     <div class="book-card">
@@ -469,21 +462,18 @@
                 `;
             }).join('');
 
-            // 2. Fire off async background API calls to fetch accurate covers live
             books.forEach(book => {
                 fetchBookCoverLive(book);
             });
         }
 
         async function fetchBookCoverLive(book) {
-            // If an ISBN happens to be present, prioritize it for an instant lookup
             if (book.isbn && book.isbn.trim() !== "") {
                 const cleanIsbn = book.isbn.replace(/[- ]/g, "");
                 document.getElementById(`carousel-img-${book.id}`).src = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`;
                 return;
             }
 
-            // Otherwise, search OpenLibrary using the title and author strings
             try {
                 const query = encodeURIComponent(`${book.title} ${book.author}`);
                 const response = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=1`);
@@ -493,13 +483,11 @@
                     const firstMatch = data.docs[0];
                     const imgElement = document.getElementById(`carousel-img-${book.id}`);
                     
-                    if (!imgElement) return; // Guard clause in case carousel rerendered mid-fetch
+                    if (!imgElement) return;
 
-                    // If a specific cover ID exists, use it
                     if (firstMatch.cover_i) {
                         imgElement.src = `https://covers.openlibrary.org/b/id/${firstMatch.cover_i}-L.jpg`;
                     } 
-                    // Fallback to checking for an ISBN in the search documentation result
                     else if (firstMatch.isbn && firstMatch.isbn.length > 0) {
                         imgElement.src = `https://covers.openlibrary.org/b/isbn/${firstMatch.isbn[0]}-L.jpg`;
                     }
@@ -522,7 +510,6 @@
             }
         }
 
-        // Native smooth scroll handler for the carousel buttons
         window.scrollCarousel = function(direction) {
             const scrollAmount = 200; 
             carouselContainer.scrollBy({
@@ -532,7 +519,7 @@
         };
         
         // ==========================================
-        //  📥 MUTUAL BACKEND SUBMISSION INTERCEPT
+        //  📥 SUGGESTION SUBMISSION INTERCEPT
         // ==========================================
         suggestionForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -546,7 +533,6 @@
             const bookInput = document.getElementById('book').value;
             const reasonInput = document.getElementById('reason').value;
             
-            // Case-insensitive clean text parsing split rule
             const parts = bookInput.split(/ \s*by\s* /i);
             const parsedTitle = parts[0] ? parts[0].trim() : bookInput.trim();
             const parsedAuthor = parts[1] ? parts[1].trim() : 'Unknown Author';
@@ -559,7 +545,6 @@
                 votes: 0
             };
 
-            // 1. Write data directly to Supabase Table Layout
             const { error: supabaseError } = await supabaseClient
                 .from('suggestions')
                 .insert([newSuggestion]);
@@ -572,7 +557,6 @@
                 return;
             }
 
-            // 2. Safely trigger programmatic Formspree fetch tracking endpoint
             fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
                 method: 'POST',
                 headers: {
@@ -604,7 +588,8 @@
             });
         });
 
-        // Initialize display lifecycle
+        // Initialize display lifecycles on page load
+        loadCurrentBook();
         loadSuggestions();
     </script>
 </body>
