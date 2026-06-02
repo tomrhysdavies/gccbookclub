@@ -367,7 +367,7 @@
         </section>
     </div>
 
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
     <script>
         // ==========================================
@@ -417,12 +417,13 @@
                 }
             } catch (error) {
                 console.error("Error fetching spotlight book from Supabase:", error);
-                // Hardcoded fallback logic in case table is empty or connection breaks
+                // Fallback default logic if table row 1 is completely empty or missing
                 document.getElementById("book-title").innerText = "The Midnight Library";
                 document.getElementById("book-author").innerText = "By Matt Haig";
                 document.getElementById("cover-img").src = "https://covers.openlibrary.org/b/isbn/978-1789990546-L.jpg";
                 document.getElementById("custom-picker").innerText = "Danni";
                 document.getElementById("tag-pages").innerText = "Pages: 304";
+                document.getElementById("book-description").innerText = "No summary available in the open repository, but your group host will fill you in!";
             }
         }
 
@@ -430,57 +431,49 @@
         //  🔄 CAROUSEL WORKFLOWS
         // ==========================================
         async function loadSuggestions() {
-            const { data: suggestions, error } = await supabaseClient
-                .from('suggestions')
-                .select('*')
-                .order('votes', { ascending: false });
+            try {
+                const { data: suggestions, error } = await supabaseClient
+                    .from('suggestions')
+                    .select('*')
+                    .order('votes', { ascending: false });
 
-            if (error) {
+                if (error) throw error;
+                renderCarousel(suggestions);
+            } catch (error) {
                 console.error('Error fetching suggestions:', error);
-                return;
             }
-            renderCarousel(suggestions);
         }
 
-       function renderCarousel(books) {
-    if (!books || books.length === 0) {
-        carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
-        return;
-    }
+        function renderCarousel(books) {
+            if (!books || books.length === 0) {
+                carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
+                return; 
+            }
 
-    carouselContainer.innerHTML = books.map(book => {
-        // 1. Check the browser memory to see if this specific book has been voted on
-        const alreadyVoted = localStorage.getItem(`voted_book_${book.id}`);
-        
-        // 2. Set up variables for the button text and background style based on the check
-        let buttonText = `👍 ${book.votes || 0}`;
-        let buttonStyle = "";
+            carouselContainer.innerHTML = books.map(book => {
+                const alreadyVoted = localStorage.getItem(`voted_book_${book.id}`);
+                
+                let buttonText = `👍 ${book.votes || 0}`;
+                let buttonStyle = "";
 
-        if (alreadyVoted) {
-            buttonText = `✅ Voted (${book.votes || 0})`;
-            // This turns the button gray, changes the text color, and stops the cursor from turning into a pointer link
-            buttonStyle = `style="background-color: #cbd5e0; color: #718096; cursor: not-allowed;"`;
-        }
+                if (alreadyVoted) {
+                    buttonText = `✅ Voted (${book.votes || 0})`;
+                    buttonStyle = `style="background-color: #cbd5e0; color: #718096; cursor: not-allowed;"`;
+                }
 
-        // 3. Return the HTML template, using our dynamic buttonStyle and buttonText variables
-        return `
-            <div class="book-card">
-                <img id="carousel-img-${book.id}" src="https://covers.openlibrary.org/b/id/13554162-L.jpg" alt="${book.title}" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
-                <h4 title="${book.title}">${book.title}</h4>
-                <p class="card-author">By ${book.author}</p>
-                <p class="card-suggester">Nom: ${book.suggester}</p>
-                <button class="vote-btn" ${buttonStyle} onclick="castVote(${book.id}, ${book.votes})">
-                    ${buttonText}
-                </button>
-            </div>
-        `;
-    }).join('');
+                return `
+                    <div class="book-card">
+                        <img id="carousel-img-${book.id}" src="https://covers.openlibrary.org/b/id/13554162-L.jpg" alt="${book.title}" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
+                        <h4 title="${book.title}">${book.title}</h4>
+                        <p class="card-author">By ${book.author}</p>
+                        <p class="card-suggester">Nom: ${book.suggester}</p>
+                        <button class="vote-btn" ${buttonStyle} onclick="castVote(${book.id}, ${book.votes})">
+                            ${buttonText}
+                        </button>
+                    </div>
+                `;
+            }).join('');
 
-    // Background background API cover image lookups
-    books.forEach(book => {
-        fetchBookCoverLive(book);
-    });
-}
             books.forEach(book => {
                 fetchBookCoverLive(book);
             });
@@ -517,15 +510,13 @@
         }
 
         async function castVote(id, currentVotes) {
-            // 1. Check if this specific book ID already exists in the user's browser memory
             const hasVoted = localStorage.getItem(`voted_book_${id}`);
 
             if (hasVoted) {
                 alert("🔒 You have already voted for this book nomination! Each member gets 1 vote per book.");
-                return; // Stop execution immediately
+                return; 
             }
 
-            // 2. Proceed with updating the database if they haven't voted yet
             const { error } = await supabaseClient
                 .from('suggestions')
                 .update({ votes: (currentVotes || 0) + 1 })
@@ -533,13 +524,10 @@
 
             if (error) {
                 console.error('Error voting:', error);
-                alert("Something went wrong saving your vote. Try again!");
+                alert("Something went wrong saving your vote.");
             } else {
-                // 3. Save the "voted" flag to the browser memory so they are locked out next time
                 localStorage.setItem(`voted_book_${id}`, "true");
-                
-                // Refresh the carousel layout to display the updated number
-                loadSuggestions();
+                loadSuggestions(); 
             }
         }
 
@@ -621,7 +609,7 @@
             });
         });
 
-        // Initialize display lifecycles on page load
+        // Initialize page display on load
         loadCurrentBook();
         loadSuggestions();
     </script>
