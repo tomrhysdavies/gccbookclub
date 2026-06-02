@@ -201,6 +201,32 @@
                 </div>
             </div>
 
+            <div id="archive-section" class="form-group" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                <h3 style="font-family: 'Georgia', serif; color: var(--accent-color); margin-top: 0;">Archive Finished Selection</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    Ready to close out the month? Type in the group metrics below to save the current spotlight book permanently into your book club history shelf before wiping the carousel.
+                </p>
+                
+                <div class="form-group">
+                    <label for="archive-date">Session Meetup Date</label>
+                    <input type="date" id="archive-date" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; background-color: #fafafa; font-size: 16px;">
+                </div>
+
+                <div class="form-group">
+                    <label for="archive-rating">Average Group Score (0.0 - 5.0)</label>
+                    <input type="text" id="archive-rating" placeholder="e.g., 4.25">
+                </div>
+
+                <div class="form-group">
+                    <label for="archive-notes">Member Breakdown & Session Notes</label>
+                    <textarea id="archive-notes" placeholder="e.g., Tom: 4/5, Danni: 5/5, Sarah: 3.5/5. Everyone loved the twist, but felt the middle dragged a bit!" style="width: 100%; height: 80px; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; background-color: #fafafa; font-size: 15px; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+
+                <button class="success-btn" id="archive-btn" onclick="archiveCurrentSpotlightBook()" style="background-color: #e2f0d9; color: var(--accent-color); border: 1px solid var(--accent-color);">
+                    📦 Save Selection to Past Reads History
+                </button>
+            </div>
+            
             <div class="form-group" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color);">
                 <h3 style="font-family: 'Georgia', serif; color: var(--accent-color); margin-top: 0;">Manage Current Nominations</h3>
                 <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
