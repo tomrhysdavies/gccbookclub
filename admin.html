@@ -201,6 +201,16 @@
                 </div>
             </div>
 
+            <div class="form-group" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                <h3 style="font-family: 'Georgia', serif; color: var(--accent-color); margin-top: 0;">Manage Current Nominations</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    Review current user entries. Click remove to immediately drop an item from the carousel if it contains typos or formatting errors.
+                </p>
+                <div id="admin-suggestions-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    <p style="color: #666; font-style: italic;">Loading nominations pool...</p>
+                </div>
+            </div>
+
             <div class="form-group" style="margin-top: 40px; padding-top: 20px; border-top: 2px dashed #b03a2e;">
                 <h3 style="font-family: 'Georgia', serif; color: var(--error-color); margin-top: 0;">Danger Zone</h3>
                 <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
@@ -232,6 +242,9 @@
             if (passwordInput === ADMIN_PASSWORD) {
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('admin-panel').classList.remove('hidden');
+                
+                // Triggers the background loading sequence for our carousel management list!
+                loadAdminSuggestionsPool();
             } else {
                 authError.classList.remove('hidden');
             }
@@ -241,17 +254,17 @@
             if (e.key === 'Enter') checkPassword();
         });
 
-       // ==========================================
+        // ==========================================
         //  🗄️ SUPABASE INITIALIZATION WITH SECURITY HEADERS
         // ==========================================
         const SUPABASE_URL = "https://sucxgonasdoqqymeszpl.supabase.co"; 
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Y3hnb25hc2RvcXF5bWVzenBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM0MjQsImV4cCI6MjA5NTg3OTQyNH0.j_zBJIfLw302hOevrCDH929ToXZFlB-7BWzRlIh9Hdo";
         
-        // This injects your secret key into every request made by the admin panel
+        // This passes your master secret key dynamically behind the scenes for RLS authentication
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             global: {
                 headers: {
-                    'x-admin-secret': 'milo123' // Must match the key you put in your database policy!
+                    'x-admin-secret': 'milo123' // Change this to match your Supabase Policy Secret string!
                 }
             }
         });
@@ -353,7 +366,7 @@
                 
             } catch (err) {
                 console.error("Supabase Write Violation Error:", err);
-                alert("Failed to write state array update entries to Supabase. Make sure your 'current_book' table exists.");
+                alert("Failed to write state array update entries to Supabase. Verify your table RLS policies configuration matches.");
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerText = "Confirm & Update Homepage";
@@ -361,47 +374,13 @@
         }
 
         // ==========================================
-        //  🚨 DANGER ZONE: CAROUSEL DB TRUNCATION
+        //  🛠️ NOMINATIONS POOL MANAGEMENT SYSTEM
         // ==========================================
-        async function clearCarouselData() {
-            const secretPassword = document.getElementById('reset-verify-password').value.trim();
-            const errorDiv = document.getElementById('reset-error');
-            const resetBtn = document.getElementById('reset-btn');
-
-            errorDiv.classList.add('hidden');
-
-            if (!secretPassword) {
-                errorDiv.innerText = "You must enter the secret reset key to proceed.";
-                errorDiv.classList.remove('hidden');
-                return;
-            }
-
-            const doubleCheck = confirm("Are you absolutely sure you want to delete ALL nominated books and reset everyone's votes to zero?");
-            if (!doubleCheck) return;
-
-            resetBtn.disabled = true;
-            resetBtn.innerText = "Wiping Database...";
-
+        async function loadAdminSuggestionsPool() {
+            const listContainer = document.getElementById('admin-suggestions-list');
+            
             try {
-                // Calls the SQL RPC function setup in Supabase Editor
-                const { data, error } = await supabaseClient.rpc('reset_nominations_carousel', {
-                    provided_password: secretPassword
-                });
-
-                if (error) throw error;
-
-                alert("🎉 Success! The nomination database table has been cleared. The index.html carousel will now be empty for the new cycle.");
-                document.getElementById('reset-verify-password').value = ""; 
-
-            } catch (err) {
-                console.error("Reset Error:", err);
-                errorDiv.innerText = err.message || "Wipe failed. Verify your secret reset key matches the database setup.";
-                errorDiv.classList.remove('hidden');
-            } finally {
-                resetBtn.disabled = false;
-                resetBtn.innerText = "Wipe Carousel";
-            }
-        }
-    </script>
-</body>
-</html>
+                const { data: suggestions, error } = await supabaseClient
+                    .from('suggestions')
+                    .select('*')
+                    .order('votes', { ascending: false });
