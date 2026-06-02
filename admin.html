@@ -509,6 +509,74 @@
                 resetBtn.innerText = "Wipe Carousel";
             }
         }
+
+        // ==========================================
+        //  📦 END OF MONTH ARCHIVE AUTOMATION ENGINE
+        // ==========================================
+        async function archiveCurrentSpotlightBook() {
+            const archiveBtn = document.getElementById('archive-btn');
+            const sessionDate = document.getElementById('archive-date').value;
+            const avgRating = document.getElementById('archive-rating').value.trim();
+            const sessionNotes = document.getElementById('archive-notes').value.trim();
+
+            if (!sessionDate || !avgRating) {
+                alert("❌ Please provide a Session Date and an Average Rating score to log this book into history.");
+                return;
+            }
+
+            const doubleCheck = confirm("Are you sure you want to capture the current spotlight book and commit it to the club archives table?");
+            if (!doubleCheck) return;
+
+            archiveBtn.disabled = true;
+            archiveBtn.innerText = "Pulling active spotlight data...";
+
+            try {
+                // 1. Fetch whatever book is CURRENTLY in the spotlight right now (Row 1)
+                const { data: activeBook, error: fetchError } = await supabaseClient
+                    .from('current_book')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+
+                if (fetchError || !activeBook) {
+                    throw new Error("Could not read the active spotlight row from the current_book table.");
+                }
+
+                archiveBtn.innerText = "Writing data packet to history shelf...";
+
+                // 2. Format and map the archive data packet payload
+                const archivePayload = {
+                    title: activeBook.title,
+                    author: activeBook.author,
+                    cover_url: activeBook.cover_url,
+                    picker: activeBook.picker,
+                    session_date: sessionDate,
+                    average_rating: parseFloat(avgRating) || 0,
+                    group_notes: sessionNotes
+                };
+
+                // 3. Insert the book into your brand new past_reads database table
+                const { error: insertError } = await supabaseClient
+                    .from('past_reads')
+                    .insert([archivePayload]);
+
+                if (insertError) throw insertError;
+
+                alert(`🎉 Successfully archived "${activeBook.title}"!\n\nIt is now safely saved in your book club history history logs. You can now safely change your spotlight selection or wipe out the carousel using the Danger Zone panel below.`);
+                
+                // Clear the entry fields so they are ready for next month
+                document.getElementById('archive-date').value = "";
+                document.getElementById('archive-rating').value = "";
+                document.getElementById('archive-notes').value = "";
+
+            } catch (err) {
+                console.error("Archive Workflow Automation Failure Error:", err);
+                alert(`Failed to save book to historical archive tables:\n${err.message || err}`);
+            } finally {
+                archiveBtn.disabled = false;
+                archiveBtn.innerText = "📦 Save Selection to Past Reads History";
+            }
+        }
     </script>
 </body>
 </html>
