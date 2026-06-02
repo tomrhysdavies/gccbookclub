@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Next Chapter | Admin Panel</title>
+    <title>The Next Chapter | Book Club Admin</title>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -200,6 +200,21 @@
                     <button class="success-btn" id="save-btn" onclick="saveCurrentBook()">Confirm & Update Homepage</button>
                 </div>
             </div>
+
+            <div class="form-group" style="margin-top: 40px; padding-top: 20px; border-top: 2px dashed #b03a2e;">
+                <h3 style="font-family: 'Georgia', serif; color: var(--error-color); margin-top: 0;">Danger Zone</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    Once a new book is confirmed, use this tool to completely wipe out all current nominations and votes from the homepage carousel. This action cannot be undone.
+                </p>
+                <div style="display: flex; gap: 10px;">
+                    <input type="password" id="reset-verify-password" placeholder="Enter Reset Secret Key">
+                    <button id="reset-btn" style="background-color: var(--error-color); width: auto; white-space: nowrap;" onclick="clearCarouselData()">
+                        Wipe Carousel
+                    </button>
+                </div>
+                <div id="reset-error" class="error-msg hidden"></div>
+            </div>
+
         </div>
     </div>
 
@@ -207,7 +222,7 @@
         // ==========================================
         //  🔒 ACCESS CREDENTIAL GATEWAY
         // ==========================================
-        const ADMIN_PASSWORD = "milo123"; // Change this to your password!
+        const ADMIN_PASSWORD = "milo123"; // Change this to your main admin page password!
         let currentFetchedBook = null;
 
         function checkPassword() {
@@ -269,7 +284,6 @@
                     ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` 
                     : 'https://via.placeholder.com/120x180?text=No+Cover';
 
-                // Package data mapping payload
                 currentFetchedBook = {
                     title: title,
                     author: author,
@@ -278,7 +292,6 @@
                     cover_url: coverUrl
                 };
 
-                // Inject text items to preview card UI elements
                 document.getElementById('book-title').innerText = currentFetchedBook.title;
                 document.getElementById('book-author').innerText = `by ${currentFetchedBook.author}`;
                 document.getElementById('book-pages').innerText = pages ? `${pages} pages` : "Page metrics unavailable";
@@ -313,7 +326,7 @@
 
             try {
                 const updatedBookRow = {
-                    id: 1, // Locks mutations to Row index 1 exclusively
+                    id: 1, 
                     title: currentFetchedBook.title,
                     author: currentFetchedBook.author,
                     description: currentFetchedBook.description,
@@ -336,6 +349,49 @@
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerText = "Confirm & Update Homepage";
+            }
+        }
+
+        // ==========================================
+        //  🚨 DANGER ZONE: CAROUSEL DB TRUNCATION
+        // ==========================================
+        async function clearCarouselData() {
+            const secretPassword = document.getElementById('reset-verify-password').value.trim();
+            const errorDiv = document.getElementById('reset-error');
+            const resetBtn = document.getElementById('reset-btn');
+
+            errorDiv.classList.add('hidden');
+
+            if (!secretPassword) {
+                errorDiv.innerText = "You must enter the secret reset key to proceed.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const doubleCheck = confirm("Are you absolutely sure you want to delete ALL nominated books and reset everyone's votes to zero?");
+            if (!doubleCheck) return;
+
+            resetBtn.disabled = true;
+            resetBtn.innerText = "Wiping Database...";
+
+            try {
+                // Calls the SQL RPC function setup in Supabase Editor
+                const { data, error } = await supabaseClient.rpc('reset_nominations_carousel', {
+                    provided_password: secretPassword
+                });
+
+                if (error) throw error;
+
+                alert("🎉 Success! The nomination database table has been cleared. The index.html carousel will now be empty for the new cycle.");
+                document.getElementById('reset-verify-password').value = ""; 
+
+            } catch (err) {
+                console.error("Reset Error:", err);
+                errorDiv.innerText = err.message || "Wipe failed. Verify your secret reset key matches the database setup.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                resetBtn.disabled = false;
+                resetBtn.innerText = "Wipe Carousel";
             }
         }
     </script>
