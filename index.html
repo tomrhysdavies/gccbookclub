@@ -490,46 +490,62 @@
             }
         }
 
-        function renderCarousel(books) {
-    if (!books || books.length === 0) {
-        carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
-        return; 
-    }
+       function renderCarousel(books) {
+            if (!books || books.length === 0) {
+                carouselContainer.innerHTML = `<p style="color: #666; text-align: center; width: 100%;">No suggestions yet. Be the first!</p>`;
+                return; 
+            }
 
-    carouselContainer.innerHTML = books.map(book => {
-        const alreadyVoted = localStorage.getItem(`voted_book_${book.id}`);
-        
-        let buttonText = `👍 ${book.votes || 0}`;
-        let buttonStyle = "";
+            carouselContainer.innerHTML = books.map(book => {
+                const alreadyVoted = localStorage.getItem(`voted_book_${book.id}`);
+                
+                let buttonText = `👍 ${book.votes || 0}`;
+                let buttonStyle = "";
 
-       if (alreadyVoted) {
-            buttonText = `✅ Voted (${book.votes || 0})`;
-            // Added !important to the background, color, and font properties
-            buttonStyle = `style="background-color: #cbd5e0 !important; color: #555555 !important; cursor: not-allowed !important; pointer-events: none; font-family: inherit !important; font-weight: 600 !important;"`;
+                if (alreadyVoted) {
+                    buttonText = `✅ Voted (${book.votes || 0})`;
+                    buttonStyle = `style="background-color: #cbd5e0 !important; color: #555555 !important; cursor: not-allowed !important; pointer-events: none; font-family: inherit !important; font-weight: 600 !important;"`;
+                }
+
+                // Instead of an <img> tag immediately, we mount a loader spinner container
+                return `
+                    <div class="book-card" id="book-card-${book.id}">
+                        <div id="carousel-cover-zone-${book.id}" class="cover-loader-container">
+                            <div class="spinner"></div>
+                        </div>
+                        <h4 title="${book.title}">${book.title}</h4>
+                        <p class="card-author">By ${book.author}</p>
+                        <p class="card-suggester">Nom: ${book.suggester}</p>
+                        <button class="vote-btn" ${buttonStyle} onclick="castVote(${book.id}, ${book.votes})">
+                            ${buttonText}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            books.forEach(book => {
+                fetchBookCoverLive(book);
+            });
         }
 
-        return `
-            <div class="book-card">
-                <img id="carousel-img-${book.id}" src="https://covers.openlibrary.org/b/id/13554162-L.jpg" alt="${book.title}" onerror="this.src='https://covers.openlibrary.org/b/id/13554162-L.jpg'">
-                <h4 title="${book.title}">${book.title}</h4>
-                <p class="card-author">By ${book.author}</p>
-                <p class="card-suggester">Nom: ${book.suggester}</p>
-                <button class="vote-btn" ${buttonStyle} onclick="castVote(${book.id}, ${book.votes})">
-                    ${buttonText}
-                </button>
-            </div>
-        `;
-    }).join('');
-
-    books.forEach(book => {
-        fetchBookCoverLive(book);
-    });
-}
-
         async function fetchBookCoverLive(book) {
+            const coverZone = document.getElementById(`carousel-cover-zone-${book.id}`);
+            if (!coverZone) return;
+
+            // Helper function to cleanly transition out the spinner and inject the final image asset
+            const displayFinalImage = (url) => {
+                coverZone.outerHTML = `<img id="carousel-img-${book.id}" src="${url}" alt="${book.title}" onerror="this.outerHTML='<div class=\'no-cover-tile\'>📖<br>No Cover Found</div>'">`;
+            };
+
+            // Helper function to inject a structural text block if lookup paths fail completely
+            const displayFallbackTile = () => {
+                coverZone.outerHTML = `<div class="no-cover-tile">📖<br>No Cover Found</div>`;
+            };
+
+            // If an ISBN is explicitly attached, resolve the path asset query routes instantly
             if (book.isbn && book.isbn.trim() !== "") {
                 const cleanIsbn = book.isbn.replace(/[- ]/g, "");
-                document.getElementById(`carousel-img-${book.id}`).src = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`;
+                displayFinalImage(`https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg`);
                 return;
             }
 
@@ -540,19 +556,21 @@
 
                 if (data.docs && data.docs.length > 0) {
                     const firstMatch = data.docs[0];
-                    const imgElement = document.getElementById(`carousel-img-${book.id}`);
                     
-                    if (!imgElement) return;
-
                     if (firstMatch.cover_i) {
-                        imgElement.src = `https://covers.openlibrary.org/b/id/${firstMatch.cover_i}-L.jpg`;
+                        displayFinalImage(`https://covers.openlibrary.org/b/id/${firstMatch.cover_i}-L.jpg`);
                     } 
                     else if (firstMatch.isbn && firstMatch.isbn.length > 0) {
-                        imgElement.src = `https://covers.openlibrary.org/b/isbn/${firstMatch.isbn[0]}-L.jpg`;
+                        displayFinalImage(`https://covers.openlibrary.org/b/isbn/${firstMatch.isbn[0]}-L.jpg`);
+                    } else {
+                        displayFallbackTile();
                     }
+                } else {
+                    displayFallbackTile();
                 }
             } catch (error) {
                 console.error(`Failed live cover lookup for: ${book.title}`, error);
+                displayFallbackTile();
             }
         }
 
