@@ -241,12 +241,20 @@
             if (e.key === 'Enter') checkPassword();
         });
 
-        // ==========================================
-        //  🗄️ SUPABASE INITIALIZATION
+       // ==========================================
+        //  🗄️ SUPABASE INITIALIZATION WITH SECURITY HEADERS
         // ==========================================
         const SUPABASE_URL = "https://sucxgonasdoqqymeszpl.supabase.co"; 
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1Y3hnb25hc2RvcXF5bWVzenBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM0MjQsImV4cCI6MjA5NTg3OTQyNH0.j_zBJIfLw302hOevrCDH929ToXZFlB-7BWzRlIh9Hdo";
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // This injects your secret key into every request made by the admin panel
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            global: {
+                headers: {
+                    'x-admin-secret': 'milo123' // Must match the key you put in your database policy!
+                }
+            }
+        });
 
         // ==========================================
         //  🚀 OPEN LIBRARY FETCH API ENGINE
